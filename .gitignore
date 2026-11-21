@@ -1,0 +1,10 @@
+# brutos baixados pelo R/01_dados.R
+data/
+# PDFs de artigos (direitos dos autores) e notas de trabalho
+dados/
+NOTAS.md
+# R
+.Rhistory
+.RData
+.Rproj.user/
+*.log
