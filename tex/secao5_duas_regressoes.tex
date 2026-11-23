@@ -1,0 +1,192 @@
+% Seção 5 de replicacao_secao4.tex: as duas regressões do MQ2E, passo a passo.
+% Números de gerado/numeros.tex (R/05_documento.R).
+\section{As duas regressões, passo a passo}\label{sec:duas}
+
+\subsection{Por que MQO não serve}
+Em~\eqref{eq:estrutural}, $X^h_t$ contém a reação do Copom ao que ele vê da economia, e o erro
+$u^h_t$ contém o que move o crédito além da Selic. Para ver o viés, residualize tudo nos controles
+$W$ (Frisch--Waugh--Lovell): seja $M_W = I - W(W'W)^{-1}W'$ e $\tilde a = M_W a$ o resíduo de $a$
+regredido em $W$. O MQO do coeficiente da Selic é
+\begin{equation}\label{eq:mqo}
+\hat\beta^{\,MQO} = \frac{\tilde X'\tilde Y}{\tilde X'\tilde X}
+                  = \beta + \frac{\tilde X'u}{\tilde X'\tilde X}.
+\end{equation}
+Se o Copom reage ao que está em $u$, então $\tilde X'u \neq 0$ mesmo em amostras grandes, e o MQO
+erra por esse termo. A variável instrumental troca, no numerador e no denominador, o $\tilde X$ por
+uma variável que não reage a $u$.
+
+\subsection{As condições da variável instrumental}
+Um instrumento $z_t$ precisa de duas condições, dados os controles $W_t$:
+\begin{enumerate}
+  \item \textbf{Relevância}: $z_t$ move $X^h_t$, isto é, $\tilde z'\tilde X \neq 0$. Testável, pelo primeiro estágio.
+  \item \textbf{Exogeneidade e exclusão}: $\operatorname{E}[z_t\,u^h_t\mid W_t]=0$; $z_t$ só afeta
+        $Y^h_t$ por meio de $X^h_t$. \textbf{Não testável} com um instrumento e uma variável endógena:
+        ``the exclusion or exogeneity condition cannot be tested'' e ``the reliability of an instrument
+        relies on argumentation, not on empirical testing'' (Verbeek, 2017, p.~154).
+\end{enumerate}
+O BC escreve as duas como hipótese (p.~45--46) e as defende numa frase: as surpresas ``são
+plausivelmente ortogonais às condições do mercado de crédito'' (p.~45). A ameaça principal é o efeito
+informação (p.~42--43; Nakamura e Steinsson, 2018, p.~76).
+
+\subsection{As três regressões}
+O MQ2E costuma ser apresentado como duas regressões; vale escrever também a terceira, que liga as
+duas. Os controles $W_t$ entram nas três.
+\begin{align}
+\text{Primeiro estágio:}\quad & X^h_t = \pi_h\, z_t + W_t'\delta_h + v^h_t, \label{eq:fs}\\
+\text{Forma reduzida:}\quad & Y^h_t = \rho_h\, z_t + W_t'\lambda_h + e^h_t, \label{eq:rf}\\
+\text{Segundo estágio:}\quad & Y^h_t = \beta_h\, \widehat{X}^h_t + W_t'\gamma_h + \text{erro},
+\quad \widehat{X}^h_t = \hat\pi_h z_t + W_t'\hat\delta_h. \label{eq:ss}
+\end{align}
+O primeiro estágio mede quanto a surpresa move a Selic; a forma reduzida, quanto a surpresa move o
+crédito; o segundo estágio usa só a parte da Selic que a surpresa (e os controles) explicam.
+
+\subsection{O estimador em uma linha}
+Com um instrumento e uma variável endógena, depois de residualizar nos controles:
+\begin{align}
+\text{1º estágio:}\quad & \hat\pi = \frac{\tilde z'\tilde X}{\tilde z'\tilde z}, \label{eq:pi}\\
+\text{forma reduzida:}\quad & \hat\rho = \frac{\tilde z'\tilde Y}{\tilde z'\tilde z}, \label{eq:rho}\\
+\text{MQ2E:}\quad & \hat\beta = \frac{\tilde z'\tilde Y}{\tilde z'\tilde X} = \frac{\hat\rho}{\hat\pi}. \label{eq:b2sls}
+\end{align}
+Compare com~\eqref{eq:mqo}: o MQ2E é o MQO com $\tilde z$ no lugar de $\tilde X$ nos dois
+produtos. Substituindo $\tilde Y = \beta\tilde X + \tilde u$,
+\begin{equation}\label{eq:erro_vi}
+\hat\beta - \beta = \frac{\tilde z'u}{\tilde z'\tilde X},
+\end{equation}
+que vai a zero se $z$ não anda junto com $u$ (exogeneidade) e se o denominador não é perto de zero
+(relevância). Se $\tilde z'\tilde X\approx0$, qualquer correlação pequena entre $z$ e $u$ explode:
+é o problema do instrumento fraco.
+
+\textbf{Em matrizes.} Com $\bar X=[X\ \ W]$, $\bar Z=[z\ \ W]$ e
+$P_{\bar Z}=\bar Z(\bar Z'\bar Z)^{-1}\bar Z'$, o MQ2E é
+\[
+\hat\theta=(\bar X'P_{\bar Z}\bar X)^{-1}\bar X'P_{\bar Z}\,Y,
+\qquad\text{e, no caso exatamente identificado,}\qquad
+\hat\theta=(\bar Z'\bar X)^{-1}\bar Z'Y.
+\]
+A coordenada de $X$ nesse vetor é exatamente~\eqref{eq:b2sls}. Os ``dois estágios'' são a leitura de $P_{\bar Z}\bar X$: primeiro
+projeta-se $X$ no espaço de $(z,W)$, depois regride-se $Y$ na projeção.
+
+%-------------------------------------------------------------------------------------
+\subsection{Exemplo 1 com todos os números: taxa do crédito livre, $h=18$}
+
+\paragraph{Passo 1: montar as variáveis.} $Y^{18}_t$ e $X^{18}_t$ como em~\eqref{eq:Y}
+e~\eqref{eq:X}; $z_t$ é a surpresa do mês; $W_t$ tem \KwTL{} colunas: constante, $\Delta y_{t-1}$,
+$\Delta y_{t-2}$, $\Delta i_{t-1}$, $\Delta i_{t-2}$. São $N=\NTL$ meses, de \IniTL{} a 12/2023.
+
+\paragraph{Passo 2: residualizar nos controles.} Regride-se $z$, $X$ e $Y$, cada um, em $W$ e
+guardam-se os resíduos. Alguns meses:
+\begin{table}[H]\centering\small
+\caption{Variáveis residualizadas nos controles (taxa do crédito livre)}
+\input{gerado/tab_residualizado_tl.tex}
+\end{table}
+Somando os produtos em todos os \NTL{} meses:
+\[
+\tilde z'\tilde z = \ZZTL,\qquad \tilde z'\tilde X = \ZXTL,\qquad \tilde z'\tilde Y = \ZYTL.
+\]
+
+\paragraph{Passo 3: primeiro estágio.} Por~\eqref{eq:pi}, $\hat\pi=\ZXTL/\ZZTL=\PmanTL$: uma surpresa
+de 1~p.p. vem acompanhada de uma Selic média, nos 19 meses seguintes, $\PmanTL$~p.p. acima da do
+mês anterior, já descontados os controles. As surpresas da amostra são de 0,25 ou 0,50~p.p., então
+uma surpresa típica corresponde a um quarto disso; o coeficiente é grande porque as surpresas
+costumam cair no começo de ciclos de juros. É o coeficiente de $z_t$ na regressão completa:
+\begin{table}[H]\centering\small
+\caption{Primeiro estágio, equação~\eqref{eq:fs}: $X^{18}_t$ na surpresa e nos controles}
+\input{gerado/tab_fs_tl.tex}
+\end{table}
+O F efetivo é o quadrado da estatística $t$ de $z_t$ com erro de Newey-West: $\FefTL$. Acima de 10,
+a regra prática (Verbeek, 2017, p.~153).
+
+\paragraph{Passo 4: forma reduzida.} Por~\eqref{eq:rho}, $\hat\rho=\ZYTL/\ZZTL=\RmanTL$: a mesma
+surpresa vem acompanhada de uma taxa do crédito livre $\RmanTL$~p.p. mais alta, no mesmo sentido.
+\begin{table}[H]\centering\small
+\caption{Forma reduzida, equação~\eqref{eq:rf}: $Y^{18}_t$ na surpresa e nos controles}
+\input{gerado/tab_rf_tl.tex}
+\end{table}
+
+\paragraph{Passo 5: segundo estágio.} Por~\eqref{eq:b2sls}, $\hat\beta=\ZYTL/\ZXTL=\BmanTL$, igual
+a $\hat\rho/\hat\pi=\RmanTL/\PmanTL$ e igual ao coeficiente de $\widehat X$ na regressão do
+segundo estágio:
+\begin{table}[H]\centering\small
+\caption{Segundo estágio, equação~\eqref{eq:ss}: $Y^{18}_t$ no valor previsto e nos controles}
+\input{gerado/tab_ss_tl.tex}
+\end{table}
+Lê-se: uma Selic 1~p.p. mais alta, em média, nos 19 meses deixa a taxa média do crédito livre
+$\BetaTL$~p.p. mais alta no mesmo período. O BC obtém 1,05 (p.~47). O $R^2$ do segundo estágio é
+igual ao da forma reduzida porque $\widehat X$ é combinação de $z$ e $W$: as duas regressões usam o
+mesmo espaço de regressores.
+
+\paragraph{Passo 6: que variação da Selic a regressão usou.} A tabela a seguir põe lado a lado
+$X_t$ (o que a Selic fez) e $\widehat X_t$ (a parte que a surpresa e os controles explicam):
+\begin{table}[H]\centering\small
+\caption{O que entra em cada regressão, em volta do início do ciclo de alta de 2021}
+\resizebox{\textwidth}{!}{\input{gerado/tab_residuos_tl.tex}}
+\end{table}
+Em 2021 a Selic média dos 19 meses seguintes ficou cerca de 5 a 7~p.p. acima da do mês anterior
+($X_t$), mas $\widehat X_t$ fica perto de zero até março: o mercado já esperava quase todo o ciclo.
+Depois de março, $\widehat X_t$ sobe porque as altas já feitas entram nos controles
+($\Delta i_{t-1}$, $\Delta i_{t-2}$), não por novas surpresas. A VI ignora a parte antecipada e
+estima $\beta$ só com a variação ligada à surpresa. É isso que a protege da reação do
+Copom à economia, e é também por isso que ela tem pouca informação (\Nmesessurp{} meses com
+$z_t\neq0$ na amostra).
+
+\paragraph{Passo 7: os resíduos certos.} O resíduo do modelo usa a Selic de verdade:
+$\hat u_t = Y_t - \hat\beta X_t - W_t'\hat\gamma$. Quem roda o segundo estágio à mão obtém
+$\hat e_t = Y_t - \hat\beta \widehat X_t - W_t'\hat\gamma$, com os mesmos coeficientes e o resíduo
+errado (as duas últimas colunas da tabela acima). A soma dos quadrados dos resíduos certos é
+$\SSRokTL$; a dos errados, $\SSRssTL$. O erro-padrão que sai do segundo estágio à mão ($\SEssTL$) é,
+por isso, diferente do correto ($\SEivTL$).
+
+\paragraph{Passo 8: o erro-padrão de Newey-West, à mão.} De~\eqref{eq:erro_vi},
+$\hat\beta-\beta = \sum_t g_t / \tilde z'\tilde X$ com $g_t=\tilde z_t u_t$ (última coluna da
+tabela do passo 2, com $\hat u_t$ no lugar de $u_t$). Então
+\begin{equation}\label{eq:nw}
+\widehat{\operatorname{Var}}(\hat\beta) = \frac{\hat S}{(\tilde z'\tilde X)^2},\qquad
+\hat S = \sum_t g_t^2 + 2\sum_{j=1}^{L}\Bigl(1-\frac{j}{L+1}\Bigr)\sum_t g_t\,g_{t-j}.
+\end{equation}
+O primeiro termo de $\hat S$ trata a heterocedasticidade; o segundo, a correlação entre meses
+próximos, com pesos que caem linearmente (Bartlett). Usa-se $L=h+1=\LnwTL$ porque $Y^{18}_t$ e
+$Y^{18}_{t+1}$ compartilham 18 dos 19 meses: os erros de meses vizinhos são correlacionados por
+construção. No exemplo, $\hat S=\SmanTL$ e
+\[
+\widehat{\text{ep}}(\hat\beta)=\frac{\sqrt{\hat S}}{|\tilde z'\tilde X|}=\frac{\sqrt{\SmanTL}}{\ZXTL}=\SEmanTL,
+\]
+o mesmo valor do pacote (\texttt{sandwich::NeweyWest}). Para comparar: sem o termo de
+autocorrelação, o erro-padrão seria $\SEhcTL$; supondo erros homocedásticos e independentes,
+$\SEhomTL$. O intervalo de 95\% é $\hat\beta\pm1{,}96\,\widehat{\text{ep}} = [\IClTL;\ \IChTL]$.
+
+%-------------------------------------------------------------------------------------
+\subsection{Exemplo 2: concessões a empresas com recursos direcionados, $h=18$}
+Mesmos passos; agora $W_t$ tem \KwCD{} colunas (as das taxas mais duas defasagens da variação da
+desocupação, do log do IPCA e do log do IBC-Br, e a dummy de pandemia), e a amostra começa em
+\IniCD{} porque a desocupação da PNAD Contínua só existe desde 2012 ($N=\NCD$).
+
+\begin{table}[H]\centering\small
+\caption{Primeiro estágio: $X^{18}_t$ na surpresa (amostra das concessões)}
+\input{gerado/tab_fs_cd.tex}
+\end{table}
+\begin{table}[H]\centering\small
+\caption{Forma reduzida: $Y^{18}_t$ (log das concessões $\times100$) na surpresa}
+\input{gerado/tab_rf_cd.tex}
+\end{table}
+\begin{table}[H]\centering\small
+\caption{Segundo estágio: $Y^{18}_t$ no valor previsto}
+\input{gerado/tab_ss_cd.tex}
+\end{table}
+
+\textbf{As contas.} $\tilde z'\tilde z=\ZZCD$, $\tilde z'\tilde X=\ZXCD$, $\tilde z'\tilde Y=\ZYCD$.
+Primeiro estágio $\hat\pi=\PmanCD$; forma reduzida $\hat\rho=\RmanCD$; $\hat\beta=\ZYCD/\ZXCD=\BmanCD$:
+por ponto de Selic, as concessões direcionadas a empresas ficam $\BetaCD$\% menores em média nos 18
+meses. O BC reporta $-5{,}3$\%, significante (p.~51). Erro-padrão de Newey-West $\SEmanCD$ (sem
+autocorrelação, $\SEhcCD$; homocedástico, $\SEhomCD$); intervalo $[\IClCD;\ \IChCD]$, com o zero
+dentro. F efetivo $\FefCD$.
+
+Note que a forma reduzida já conta a história toda: a surpresa tem coeficiente $\PiRFCD$ com
+estatística $t$ pequena, isto é, não há relação detectável entre surpresas e concessões
+direcionadas a empresas nesta amostra. Como $\hat\beta=\hat\rho/\hat\pi$ e o primeiro estágio é
+forte, o MQ2E só reescala essa forma reduzida imprecisa em unidades de Selic.
+
+\subsection{MQO contra VI}
+Sem instrumento, o MQO de~\eqref{eq:estrutural} dá $\BetaTLols$ para a taxa do crédito livre
+(contra $\BetaTL$ por VI) e $\BetaCDols$ para as concessões direcionadas a empresas (contra
+$\BetaCD$). Por~\eqref{eq:mqo}, a diferença é uma estimativa do viés $\tilde X'u/\tilde X'\tilde X$,
+se o instrumento for válido.

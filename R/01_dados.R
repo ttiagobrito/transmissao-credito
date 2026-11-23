@@ -28,7 +28,7 @@ series <- tribble(
   20631, "concb_total",  20634, "concb_liv",    20685, "concb_dir",
   20635, "concb_liv_pj", 20662, "concb_liv_pf", 20686, "concb_dir_pj", 20698, "concb_dir_pf",
   # taxas médias (% a.a.)
-  20714, "tx_total", 20717, "tx_liv", 20756, "tx_dir",
+  20714, "tx_total", 20717, "tx_liv", 20756, "tx_dir", 20715, "tx_pj", 20716, "tx_pf",
   20718, "tx_liv_pj", 20740, "tx_liv_pf", 20757, "tx_dir_pj", 20768, "tx_dir_pf",
   # prazos médios das concessões (meses)
   20855, "prazo_liv", 20895, "prazo_dir",
@@ -36,7 +36,8 @@ series <- tribble(
   4189,  "selic",      # Selic acumulada no mês anualizada (% a.a.)
   433,   "ipca_var",   # IPCA, variação mensal (%)
   24364, "ibcbr",      # IBC-Br dessazonalizado
-  24369, "desocup"     # taxa de desocupação, PNAD Contínua (%)
+  24369, "desocup",    # taxa de desocupação, PNAD Contínua (%), desde mar/2012
+  10777, "desocup_pme" # taxa de desocupação, PME (%), 2002 a fev/2016: cobre 2011-12 na réplica do BC
 )
 
 baixar_sgs <- function(codigo, tentativas = 4) {

@@ -8,3 +8,13 @@ NOTAS.md
 .RData
 .Rproj.user/
 *.log
+data_fgv/
+data_b3/
+# LaTeX
+tex/*.aux
+tex/*.log
+tex/*.out
+tex/*.toc
+tex/*.synctex.gz
+# material de estudo local
+glossario.md

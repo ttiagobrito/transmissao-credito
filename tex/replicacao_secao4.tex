@@ -1,0 +1,285 @@
+% Replicação passo a passo da seção 4 de BC (2026). Compilar com XeLaTeX (duas passadas).
+% Números e tabelas vêm de ../R/05_documento.R (pasta gerado/); nada é digitado à mão.
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage[brazil]{babel}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,float,graphicx,caption}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage[hidelinks]{hyperref}
+\captionsetup{font=small,labelfont=bf}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{0pt}
+\lstset{basicstyle=\ttfamily\small,columns=fullflexible,frame=single,framerule=0.3pt,
+  backgroundcolor=\color{gray!6},breaklines=true,upquote=true,literate={ç}{{\c{c}}}1 {ã}{{\~a}}1}
+\input{gerado/numeros.tex}
+\newcommand{\BC}{BC (2026)}
+
+\title{Transmissão da Selic pelo crédito:\\ a seção 4 do estudo do BC refeita passo a passo}
+\author{Tiago Müller de Brito}
+\date{Novembro de 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Este documento refaz, com dados públicos, a seção 4 de \BC, \emph{Transmissão da Política Monetária
+por meio do Crédito: evidência teórica e empírica}. Mostra como se monta cada variável, escreve as
+duas regressões do estimador de mínimos quadrados em dois estágios com todos os coeficientes, prova
+que o efeito estimado é a razão entre a forma reduzida e o primeiro estágio, e explica os erros-padrão.
+Depois compara os resultados com os do BC e roda os diagnósticos que o estudo não reporta. As
+páginas citadas são as impressas no relatório do BC.
+\end{abstract}
+
+\tableofcontents
+
+%======================================================================================
+\section{A pergunta e o problema}
+
+O BC quer saber quanto uma Selic mais alta muda (i) as taxas de juros dos empréstimos e (ii) o volume
+de concessões, por tipo de crédito, ao longo de 18 meses (p.~41–53).
+
+A regressão ingênua seria a da taxa do empréstimo na Selic. Ela mistura duas coisas. A Selic afeta o
+crédito, mas o Copom também escolhe a Selic olhando para o que move o crédito: quando a economia
+aquece, o Copom sobe os juros e, ao mesmo tempo, a demanda por crédito cresce. O coeficiente de
+mínimos quadrados ordinários (MQO) mede a soma dos dois movimentos. Em linguagem de regressão, a
+Selic é \textbf{endógena}: está correlacionada com o termo de erro.
+
+A saída do BC tem duas camadas, que vale manter separadas:
+\begin{enumerate}
+  \item \textbf{Estimador}: projeções locais com multiplicador cumulativo (Jordà e Taylor, 2025), que
+        dizem \emph{como} medir a resposta ao longo do tempo (seção~\ref{sec:lp}).
+  \item \textbf{Identificação}: uma variável instrumental, a surpresa do mercado na decisão do Copom,
+        que diz \emph{qual} variação da Selic se pode tratar como exógena (seções~\ref{sec:surpresa}
+        e~\ref{sec:duas}).
+\end{enumerate}
+
+%======================================================================================
+\section{Os dados}\label{sec:dados}
+
+Todas as séries vêm do Sistema Gerenciador de Séries Temporais (SGS) do BC, mensais, de março de
+2011 a junho de 2025, como no estudo (p.~46).
+
+\begin{table}[H]\centering\small
+\caption{Séries usadas}
+\begin{tabular}{p{5.4cm}p{4.2cm}p{5.3cm}}
+\toprule
+Variável & Códigos SGS & Transformação \\
+\midrule
+Concessões (total; PF e PJ; livres e direcionados) & 24439 a 24447 & dessazonalizadas pelo BC; $\div$ IPCA; $100\times\log$ \\
+Concessões brutas (para pesos) & 20631, 20634, 20635, 20662, 20685, 20686, 20698 & R\$ milhões \\
+Taxas médias de juros (mesmos recortes) & 20714, 20717, 20718, 20740, 20756, 20757, 20768 & \% a.a., em nível \\
+Selic & 4189 & \% a.a., média do mês \\
+IPCA & 433 & índice, $100\times\log$ \\
+IBC-Br dessazonalizado & 24364 & $100\times\log$ \\
+Desocupação (PNAD Contínua) & 24369 & \%, desde mar/2012 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Conferência com o BC.} A média mensal das concessões brutas na amostra é R\$~\MediaLivre{}
+bilhões no crédito livre, R\$~\MediaDir{} bilhões no direcionado e R\$~\MediaTotal{} bilhões no total.
+A Tabela 4.1 do BC (p.~47) traz 312,1; 41,0 e 353,2. São os mesmos dados, com pequenas revisões. O
+direcionado é \ParticDir\% das concessões mensais.
+
+\textbf{Por que log vezes 100.} Para variações pequenas, $100\times(\log a - \log b)\approx$ variação
+percentual. Assim o coeficiente das concessões se lê direto em \%.
+
+%======================================================================================
+\section{O instrumento: a surpresa do Copom}\label{sec:surpresa}
+
+\subsection{A versão do BC: DI futuro}
+O BC mede a surpresa no mercado de DI futuro (p.~43–44). No dia $t$ da decisão, calcula a taxa a
+termo $f_t(t+1,T)$ que o mercado embutia para o período do dia seguinte até o vencimento $T$ do
+contrato, tirando da taxa do contrato o dia $t$, cuja DI já é conhecida:
+\begin{equation}
+(1+r_t(T))^{\,du_T/252} = (1+DI_t)^{1/252}\,\bigl(1+f_t(t+1,T)\bigr)^{(du_T-1)/252}.
+\end{equation}
+No fechamento do dia seguinte, a taxa do mesmo contrato é $r_{t+1}(T)$. A surpresa é
+\begin{equation}
+z_t = r_{t+1}(T) - f_t(t+1,T),
+\end{equation}
+com $10 < du_T < 40$ dias úteis (só uma reunião do Copom dentro do prazo) e $z_t=0$ quando
+$|z_t|<5$ pontos-base. Como o Copom anuncia com o mercado fechado, a janela vai de um fechamento ao
+outro (p.~42 e 44).
+
+\subsection{A versão desta réplica: Focus}
+O BC informa que os resultados se mantêm quando a surpresa é medida contra a pesquisa Focus
+(nota~41, p.~46). É essa a versão usada aqui, porque os dados são públicos:
+\begin{equation}
+z_m = \underbrace{i^{\text{decidida}}_m}_{\text{meta Selic}} - \underbrace{\text{mediana}^{\text{Focus}}_m}_{\text{última pesquisa antes da reunião}},
+\end{equation}
+descartando a reunião se a última pesquisa tem mais de 10 dias. No mês, $z_t$ é a soma das
+surpresas das reuniões do mês (zero nos meses sem reunião).
+
+\textbf{Exemplo.} Na reunião \ExReuniao{} (\ExData), a Selic estava em \ExAnterior\%. Na pesquisa
+Focus de \ExFocusData, a mediana dos analistas para essa reunião era \ExMediana\%. O Copom decidiu
+\ExDecisao\%. A surpresa é $\ExDecisao - \ExMediana = \ExSurpresa$ p.p.: o mercado esperava alta, e a
+alta veio maior.
+
+\textbf{Quantas surpresas existem.} Das \Nreunioes{} reuniões da amostra, \Nsurpresas{} têm surpresa
+diferente de zero; nos \Nmeses{} meses, \Nmesessurp{} têm $z_t\neq 0$. Todo o efeito é identificado
+por esses eventos.
+
+\begin{table}[H]\centering\small
+\caption{Reuniões com surpresa diferente de zero (mar/2011--jun/2025)}
+\input{gerado/tab_surpresas.tex}
+\end{table}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{gerado/fig_surpresas.pdf}
+\caption{Selic e surpresas do Copom. A variação da Selic que identifica o efeito é só a dos meses com barra.}
+\end{figure}
+
+%======================================================================================
+\section{A projeção local e o multiplicador cumulativo}\label{sec:lp}
+
+Uma projeção local estima uma regressão separada para cada horizonte $h$, em vez de um sistema
+inteiro (Jordà, 2005). O BC usa a versão de Jordà e Taylor (2025), que não pergunta ``quanto a
+variável muda $h$ meses depois do choque'', e sim ``quanto ela muda em média, por ponto de Selic também
+em média''. O motivo é que, depois de uma surpresa, o Copom continua mexendo na Selic; o multiplicador
+divide uma resposta pela outra (p.~45).
+
+Para cada mês $t$ e horizonte $h$, monte duas variáveis:
+\begin{align}
+Y^h_t &= \frac{1}{h+1}\sum_{j=0}^{h} y_{t+j} \;-\; y_{t-1}, \label{eq:Y}\\
+X^h_t &= \frac{1}{h+1}\sum_{j=0}^{h} i_{t+j} \;-\; i_{t-1}, \label{eq:X}
+\end{align}
+em que $y$ é a taxa do empréstimo (ou o log das concessões) e $i$ é a Selic. A equação de interesse é
+\begin{equation}\label{eq:estrutural}
+Y^h_t = \beta_h\, X^h_t + W_t'\gamma_h + u^h_t ,
+\end{equation}
+e $\beta_h$ é o \textbf{multiplicador cumulativo}: se a Selic fica 1~p.p. mais alta, em média, entre
+$t$ e $t+h$, a taxa do empréstimo fica $\beta_h$~p.p. mais alta, em média, no mesmo período. Nas
+concessões, fica $\beta_h$\% maior (ou menor).
+
+$W_t$ são os controles, todos medidos antes de $t$ (p.~46):
+\begin{itemize}
+  \item taxas: constante, $\Delta y_{t-1}$, $\Delta y_{t-2}$, $\Delta i_{t-1}$, $\Delta i_{t-2}$;
+  \item concessões: os mesmos, mais duas defasagens da variação da desocupação ($\Delta u$), do log
+        do IPCA ($\Delta p$) e do log do IBC-Br ($\Delta a$), e uma dummy de pandemia (mar/2020 a
+        dez/2022).
+\end{itemize}
+O BC escolhe as defasagens pelo critério BIC e inclui também o índice de incerteza IIE-Br; aqui são
+duas defasagens fixas e sem o IIE-Br, que o BC diz não mudar o resultado (nota~41).
+
+\textbf{Exemplo de montagem}, taxa do crédito livre com $h=18$, em volta da reunião \ExReuniao.
+Cada linha é um mês $t$; $\bar{i}_{t,t+18}$ é a média da Selic de $t$ a $t+18$.
+
+\begin{table}[H]\centering\small
+\caption{Construção de $X^{18}_t$ e $Y^{18}_t$ (taxa do crédito livre, \% a.a.)}
+\input{gerado/tab_exemplo_variaveis.tex}
+\end{table}
+
+Leia a linha de março de 2021: $X^{18}_t$ é quanto a Selic média dos 19 meses seguintes ficou acima
+da Selic de fevereiro; $Y^{18}_t$ é o mesmo para a taxa do crédito livre. A regressão compara esses
+dois números entre os meses, usando só a parte de $X^{18}_t$ que a surpresa explica.
+
+O último mês $t$ que entra na regressão é dezembro de 2023: a média de $t$ a $t+18$ precisa de dados
+até junho de 2025, o fim da amostra. Por isso as tabelas a seguir terminam em 12/2023.
+
+%======================================================================================
+\input{secao5_duas_regressoes}
+
+%======================================================================================
+\section{Todos os resultados ($h=18$) contra os do BC}
+
+\begin{table}[H]\centering\scriptsize
+\caption{Repasse para as taxas de juros (p.p. por p.p. de Selic)}
+\resizebox{\textwidth}{!}{\input{gerado/tab_res_taxas.tex}}
+\end{table}
+
+\begin{table}[H]\centering\scriptsize
+\caption{Resposta das concessões (\% por p.p. de Selic)}
+\resizebox{\textwidth}{!}{\input{gerado/tab_res_volumes.tex}}
+\end{table}
+
+As taxas se reproduzem: o direcionado sai igual ao do BC, e o livre sai acima de 1, como lá. Nas
+concessões, a direção é a do BC (direcionado cai, livre não), mas nenhuma resposta é significante a
+95\%, e o total fica parado. Em reais, o efeito sobre as concessões totais é de R\$~\TotalRS{} bilhão
+por mês, com intervalo de R\$~\TotalRSlo{} a \TotalRShi{} bilhões.
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth]{gerado/fig_traj_taxas.pdf}
+\caption{Multiplicador cumulativo das taxas por horizonte, com intervalo de 95\%. A linha tracejada é o repasse completo.}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.95\textwidth]{gerado/fig_traj_volumes.pdf}
+\caption{Multiplicador cumulativo das concessões por horizonte, com intervalo de 95\%.}
+\end{figure}
+
+%======================================================================================
+\section{Diagnósticos que o estudo não reporta}
+
+\textbf{1. Força do instrumento.} O F efetivo do primeiro estágio (com erro de Newey-West) fica entre
+26 e 32 nas concessões e entre 16 e 20 nas taxas. A regra prática pede mais de 10 (Verbeek, 2017,
+p.~153); o critério de Montiel Olea e Pflueger (2013) pede cerca de 23. Os intervalos de
+Anderson--Rubin, válidos mesmo com instrumento fraco, ficam próximos dos usuais. Nesta versão do
+instrumento, a força não é o problema.
+
+\textbf{2. A diferença entre direcionado e livre.} ``O direcionado cai mais'' exige testar a diferença,
+não comparar um número significante com outro não significante. Regredindo a diferença dos logs no
+mesmo desenho:
+\begin{table}[H]\centering\small
+\caption{Diferença direcionado $-$ livre nas concessões (p.p.)}
+\input{gerado/tab_diferencas.tex}
+\end{table}
+
+\textbf{3. Placebo de antecedência.} A surpresa de hoje não deveria explicar o que aconteceu nos 12
+meses anteriores. Ela explica em parte: tende a vir depois de crédito forte às famílias, sinal de que
+não é totalmente imprevisível (Bauer e Swanson, 2023, citados pelo BC na p.~43).
+\begin{table}[H]\centering\small
+\caption{Forma reduzida de $y_{t-1}-y_{t-13}$ na surpresa $z_t$}
+\input{gerado/tab_placebo.tex}
+\end{table}
+
+\textbf{4. Robustez das concessões.}
+\begin{table}[H]\centering\small
+\caption{Multiplicador das concessões em especificações alternativas ($h=18$)}
+\resizebox{\textwidth}{!}{\input{gerado/tab_robustez.tex}}
+\end{table}
+
+%======================================================================================
+\section{O que esta réplica não faz}
+\begin{itemize}
+  \item Usa a surpresa contra o Focus, não a do DI futuro (dados da B3 não baixados).
+  \item Usa duas defasagens fixas, não o BIC; não inclui o IIE-Br.
+  \item A amostra das concessões começa em 2012 (PNAD Contínua); sem a desocupação, começa em 2011.
+  \item Não separa o efeito informação; um passo natural seria classificar as surpresas pelo
+        movimento da bolsa no mesmo dia (Jarociński e Karadi, 2020).
+\end{itemize}
+
+%======================================================================================
+\appendix
+\section{O código das duas regressões}
+O núcleo da estimação, em R (arquivo \texttt{R/funcoes.R} e \texttt{R/05\_documento.R}):
+\begin{lstlisting}[language=R]
+# d: uma linha por mes t, com lhs = Y^h_t, x = X^h_t, z = surpresa e os controles W
+fs <- lm(x   ~ z    + W, data = d)          # 1o estagio
+rf <- lm(lhs ~ z    + W, data = d)          # forma reduzida
+d$xhat <- fitted(fs)
+ss <- lm(lhs ~ xhat + W, data = d)          # 2o estagio a mao (coeficiente certo, erro-padrao errado)
+iv <- AER::ivreg(lhs ~ x + W | z + W, data = d)   # MQ2E com erro-padrao correto
+V  <- sandwich::NeweyWest(iv, lag = h + 1, prewhite = FALSE)
+coef(rf)["z"] / coef(fs)["z"] == coef(iv)["x"]   # identidade de Wald
+\end{lstlisting}
+Código completo: \url{https://github.com/ttiagobrito/transmissao-credito}.
+
+\section*{Referências}
+\small
+\begin{description}\setlength{\itemsep}{0.2em}
+\item Banco Central do Brasil (2026). \emph{Transmissão da Política Monetária por meio do Crédito:
+  evidência teórica e empírica}. Brasília: Depep e Derin.
+\item Bauer, M. D.; Swanson, E. T. (2023). An alternative explanation for the ``Fed information effect''. \emph{American Economic Review} 113(3).
+\item Jarociński, M.; Karadi, P. (2020). Deconstructing monetary policy surprises: the role of information shocks. \emph{AEJ: Macroeconomics} 12(2).
+\item Jordà, Ò. (2005). Estimation and inference of impulse responses by local projections. \emph{American Economic Review} 95(1): 161--182.
+\item Jordà, Ò.; Taylor, A. M. (2025). Local Projections. \emph{Journal of Economic Literature} 63(1): 59--110.
+\item Montiel Olea, J. L.; Pflueger, C. (2013). A robust test for weak instruments. \emph{Journal of Business \& Economic Statistics} 31(3).
+\item Nakamura, E.; Steinsson, J. (2018). Identification in macroeconomics. \emph{Journal of Economic Perspectives} 32(3): 59--86.
+\item Verbeek, M. (2017). \emph{A Guide to Modern Econometrics}. 5.~ed. Chichester: Wiley.
+\end{description}
+
+\end{document}
